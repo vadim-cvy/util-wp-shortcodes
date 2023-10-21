@@ -1,0 +1,11 @@
+{
+  "name": "cvy/util-wp-shortcodes",
+  "autoload": {
+    "psr-4": {
+      "Cvy\\WP\\Shortcodes\\": "src/"
+    }
+  },
+  "require": {
+    "cvy/util-design-patterns": "^1."
+  }
+}
