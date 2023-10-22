@@ -16,20 +16,27 @@ abstract class Shortcode extends \Cvy\DesignPatterns\Singleton
 
   private function get_content() : string
   {
+    if ( ! $this->should_render() )
+    {
+      return '';
+    }
+
+    $err = $this->get_error();
+
+    if ( $err )
+    {
+      trigger_error( $err, E_USER_WARNING );
+
+      return '<b>Error. Can\'t render this content.</b>';
+    }
+
     ob_start();
 
-    $err_msg = $this->get_error_message();
+    echo $this->get_wrapper_opening_tag();
 
-    if ( $err_msg )
-    {
-      trigger_error( strip_tags( $err_msg ), E_USER_WARNING );
+    $this->render();
 
-      echo $err_msg;
-    }
-    else
-    {
-      $this->render();
-    }
+    echo $this->get_wrapper_closing_tag();
 
     $output = ob_get_contents();
 
@@ -38,32 +45,61 @@ abstract class Shortcode extends \Cvy\DesignPatterns\Singleton
     return $output;
   }
 
-  private function get_error_message() : string
+  private function get_wrapper_opening_tag() : string
   {
-    if ( $this->are_assets_enqueued )
+    $css_class = str_replace( '_', '-', $this->get_name() );
+
+    return sprintf( '<%s class="%s">',
+      $this->get_wrapper_tag_name(),
+      esc_attr( $css_class )
+    );
+  }
+
+  private function get_wrapper_closing_tag() : string
+  {
+    return sprintf( '</%s>', $this->get_wrapper_tag_name() );
+  }
+
+  abstract protected function get_wrapper_tag_name() : string;
+
+  private function get_error() : string
+  {
+    if ( ! $this->should_render() )
     {
       return '';
     }
 
-    $err_msg = '<b>Error. Can\'t render this content...</b>';
+    $err = $this->get_custom_error();
 
-    if ( current_user_can( 'administrator' ) )
+    if ( ! $err )
     {
-      $err_msg .= sprintf(
-        'Assets for "%s" are not enqueued. Check implementation of the %s::will_render() is correct.',
-        esc_html( $this->get_name() ),
+      $err = $this->get_assets_error();
+    }
+
+    return $err;
+  }
+
+  abstract protected function get_custom_error() : string;
+
+  private function get_assets_error() : string
+  {
+    if ( ! $this->are_assets_enqueued )
+    {
+      return sprintf(
+        'Assets for "%s" are not enqueued. Check if "%s::should_render()" implementation is correct.',
+        $this->get_name(),
         get_called_class()
       );
     }
 
-    return $err_msg;
+    return '';
   }
 
   abstract protected function render() : void;
 
   private function maybe_enqueue_assets() : void
   {
-    if ( $this->will_render() )
+    if ( $this->should_render() )
     {
       $this->enqueue_assets();
 
@@ -71,7 +107,7 @@ abstract class Shortcode extends \Cvy\DesignPatterns\Singleton
     }
   }
 
-  abstract protected function will_render() : bool;
+  abstract protected function should_render() : bool;
 
   abstract protected function enqueue_assets() : void;
 }
