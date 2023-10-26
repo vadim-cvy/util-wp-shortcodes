@@ -146,7 +146,10 @@ abstract class Shortcode extends \Cvy\DesignPatterns\Singleton
     return sprintf( '</%s>', $this->get_wrapper_tag_name() );
   }
 
-  abstract protected function get_wrapper_tag_name() : string;
+  protected function get_wrapper_tag_name() : string
+  {
+    return 'div';
+  }
 
   abstract protected function render() : bool;
 
